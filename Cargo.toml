@@ -1,0 +1,26 @@
+[package]
+name = "ulbox360"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+slint = { version = "1.8.0", features = ["backend-qt"] }
+rfd = "0.14"
+iso2god = { git = "https://github.com/iliazeus/iso2god-rs.git" }
+xdvdfs = "0.8.3"
+tokio = { version = "1", features = ["full"] }
+thiserror = "2.0"
+zerocopy = { version = "0.8.54", features = ["derive"] }
+rayon = "1.10"
+chrono = "0.4"
+bimap = "0.5"
+fuser = "0.14"
+ftp = "3.0.1" # for Aurora FTP upload
+anyhow = "1.0"
+byteorder = "1.5"
+log = "0.4"
+env_logger = "0.11"
+libc = "0.2"
+
+[build-dependencies]
+slint-build = "1.8.0"

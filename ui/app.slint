@@ -1,0 +1,295 @@
+import { Button, VerticalBox, HorizontalBox, LineEdit, StandardListView, TabWidget } from "std-widgets.slint";
+
+export component AppWindow inherits Window {
+    title: "ULBOX360 - Xbox 360 & Original AIO GUI Tool";
+    preferred-width: 800px;
+    preferred-height: 600px;
+    
+    // ISO to GOD properties
+    in-out property <string> god-iso-path: "";
+    in-out property <string> god-dest-path: "";
+    in-out property <bool> god-trim: true;
+    in-out property <string> god-threads: "4";
+    in-out property <float> god-progress: 0.0;
+    in-out property <string> god-status: "Ready";
+    callback convert-to-god();
+    callback select-god-iso();
+    callback select-god-dest();
+
+    // XISO properties
+    in-out property <string> xiso-source-path: "";
+    in-out property <string> xiso-dest-path: "";
+    in-out property <float> xiso-progress: 0.0;
+    in-out property <string> xiso-status: "Ready";
+    callback unpack-xiso();
+    callback pack-xiso();
+    callback select-xiso-source(bool); // true for file, false for folder
+    callback select-xiso-dest(bool); // true for file, false for folder
+
+    // FATX FUSE properties
+    in-out property <string> fatx-img-path: "";
+    in-out property <string> fatx-mount-path: "";
+    in-out property <string> fatx-status: "Not mounted";
+    in-out property <bool> fatx-is-mounted: false;
+    callback mount-fatx();
+    callback unmount-fatx();
+    callback select-fatx-img();
+    callback select-fatx-mount();
+
+    // FTP properties
+    in-out property <string> ftp-ip: "192.168.1.100";
+    in-out property <string> ftp-port: "21";
+    in-out property <string> ftp-user: "xbox";
+    in-out property <string> ftp-pass: "xbox";
+    in-out property <string> ftp-local-path: "";
+    in-out property <string> ftp-status: "Disconnected";
+    in-out property <float> ftp-progress: 0.0;
+    callback select-ftp-local();
+    callback start-ftp-upload();
+
+    VerticalBox {
+        padding: 10px;
+        spacing: 10px;
+        
+        Text {
+            text: "ULBOX360 - Xbox 360 & Original AIO GUI Tool";
+            font-size: 20px;
+            font-weight: 700;
+            horizontal-alignment: center;
+        }
+
+        TabWidget {
+            Tab {
+                title: "ISO to GOD";
+                VerticalBox {
+                    spacing: 12px;
+                    padding: 10px;
+                    
+                    HorizontalBox {
+                        spacing: 8px;
+                        Text { text: "Source ISO:"; width: 120px; vertical-alignment: center; }
+                        LineEdit { text: god-iso-path; read-only: true; }
+                        Button { text: "Browse..."; height: 28px; clicked => { root.select-god-iso(); } }
+                    }
+
+                    HorizontalBox {
+                        spacing: 8px;
+                        Text { text: "Destination:"; width: 120px; vertical-alignment: center; }
+                        LineEdit { text: god-dest-path; read-only: true; }
+                        Button { text: "Browse..."; height: 28px; clicked => { root.select-god-dest(); } }
+                    }
+
+                    HorizontalBox {
+                        spacing: 16px;
+                        HorizontalBox {
+                            spacing: 8px;
+                            Text { text: "Trim ISO:"; vertical-alignment: center; }
+                            // Simple checkbox simulation
+                            Button {
+                                text: god-trim ? "[X]" : "[ ]";
+                                clicked => { god-trim = !god-trim; }
+                                width: 50px;
+                                height: 28px;
+                            }
+                        }
+                        HorizontalBox {
+                            spacing: 8px;
+                            Text { text: "Threads:"; vertical-alignment: center; }
+                            LineEdit { text: god-threads; width: 60px; }
+                        }
+                    }
+
+                    HorizontalBox {
+                        alignment: center;
+                        Button {
+                            text: "Convert to GOD";
+                            primary: true;
+                            width: 220px;
+                            height: 30px;
+                            clicked => { root.convert-to-god(); }
+                        }
+                    }
+
+                    Text { text: "Status: " + god-status; font-weight: 500; }
+                    
+                    // Simple progress bar (Breeze Dark styled)
+                    Rectangle {
+                        height: 20px;
+                        background: #2a2e32;
+                        border-radius: 4px;
+                        border-width: 1px;
+                        border-color: #4d545c;
+                        Rectangle {
+                            x: 1px;
+                            y: 1px;
+                            width: (parent.width - 2px) * god-progress;
+                            height: parent.height - 2px;
+                            background: #3daee9; // Breeze Blue
+                            border-radius: 3px;
+                        }
+                    }
+                }
+            }
+
+            Tab {
+                title: "XISO (Unpack/Pack)";
+                VerticalBox {
+                    spacing: 12px;
+                    padding: 10px;
+
+                    Text { text: "Extract Xbox Original / 360 XISO or Pack folder to XISO"; font-weight: 500; }
+
+                    HorizontalBox {
+                        spacing: 8px;
+                        Text { text: "Source Path:"; width: 120px; vertical-alignment: center; }
+                        LineEdit { text: xiso-source-path; read-only: true; }
+                        Button { text: "Select File..."; height: 28px; clicked => { root.select-xiso-source(true); } }
+                        Button { text: "Select Folder..."; height: 28px; clicked => { root.select-xiso-source(false); } }
+                    }
+
+                    HorizontalBox {
+                        spacing: 8px;
+                        Text { text: "Dest Path:"; width: 120px; vertical-alignment: center; }
+                        LineEdit { text: xiso-dest-path; read-only: true; }
+                        Button { text: "Select File..."; height: 28px; clicked => { root.select-xiso-dest(true); } }
+                        Button { text: "Select Folder..."; height: 28px; clicked => { root.select-xiso-dest(false); } }
+                    }
+
+                    HorizontalBox {
+                        alignment: center;
+                        spacing: 16px;
+                        Button {
+                            text: "Extract (Unpack ISO)";
+                            width: 180px;
+                            height: 30px;
+                            clicked => { root.unpack-xiso(); }
+                        }
+                        Button {
+                            text: "Build (Pack to ISO)";
+                            width: 180px;
+                            height: 30px;
+                            clicked => { root.pack-xiso(); }
+                        }
+                    }
+
+                    Text { text: "Status: " + xiso-status; }
+
+                    Rectangle {
+                        height: 20px;
+                        background: #2a2e32;
+                        border-radius: 4px;
+                        border-width: 1px;
+                        border-color: #4d545c;
+                        Rectangle {
+                            x: 1px;
+                            y: 1px;
+                            width: (parent.width - 2px) * xiso-progress;
+                            height: parent.height - 2px;
+                            background: #3daee9;
+                            border-radius: 3px;
+                        }
+                    }
+                }
+            }
+
+            Tab {
+                title: "FATX Mounter";
+                VerticalBox {
+                    spacing: 12px;
+                    padding: 10px;
+
+                    HorizontalBox {
+                        spacing: 8px;
+                        Text { text: "FATX Device/Image:"; width: 150px; vertical-alignment: center; }
+                        LineEdit { text: fatx-img-path; read-only: true; }
+                        Button { text: "Browse..."; height: 28px; clicked => { root.select-fatx-img(); } }
+                    }
+
+                    HorizontalBox {
+                        spacing: 8px;
+                        Text { text: "Mount Folder:"; width: 150px; vertical-alignment: center; }
+                        LineEdit { text: fatx-mount-path; read-only: true; }
+                        Button { text: "Browse..."; height: 28px; clicked => { root.select-fatx-mount(); } }
+                    }
+
+                    HorizontalBox {
+                        alignment: center;
+                        Button {
+                            text: fatx-is-mounted ? "Unmount FATX" : "Mount FATX (FUSE)";
+                            width: 220px;
+                            height: 30px;
+                            clicked => {
+                                if (fatx-is-mounted) {
+                                    root.unmount-fatx();
+                                } else {
+                                    root.mount-fatx();
+                                }
+                            }
+                        }
+                    }
+
+                    Text { text: "FUSE Status: " + fatx-status; font-weight: 500; }
+                }
+            }
+
+            Tab {
+                title: "Aurora FTP Upload";
+                VerticalBox {
+                    spacing: 12px;
+                    padding: 10px;
+
+                    HorizontalBox {
+                        spacing: 8px;
+                        Text { text: "Xbox IP Address:"; width: 120px; vertical-alignment: center; }
+                        LineEdit { text: ftp-ip; edited(val) => { ftp-ip = val; } }
+                        Text { text: "Port:"; vertical-alignment: center; }
+                        LineEdit { text: ftp-port; width: 60px; edited(val) => { ftp-port = val; } }
+                    }
+
+                    HorizontalBox {
+                        spacing: 8px;
+                        Text { text: "Username:"; width: 120px; vertical-alignment: center; }
+                        LineEdit { text: ftp-user; edited(val) => { ftp-user = val; } }
+                        Text { text: "Password:"; vertical-alignment: center; }
+                        LineEdit { text: ftp-pass; edited(val) => { ftp-pass = val; } }
+                    }
+
+                    HorizontalBox {
+                        spacing: 8px;
+                        Text { text: "Local Directory:"; width: 120px; vertical-alignment: center; }
+                        LineEdit { text: ftp-local-path; read-only: true; }
+                        Button { text: "Browse..."; height: 28px; clicked => { root.select-ftp-local(); } }
+                    }
+
+                    HorizontalBox {
+                        alignment: center;
+                        Button {
+                            text: "Upload to Console (Aurora)";
+                            width: 240px;
+                            height: 30px;
+                            clicked => { root.start-ftp-upload(); }
+                        }
+                    }
+
+                    Text { text: "FTP Status: " + ftp-status; }
+
+                    Rectangle {
+                        height: 20px;
+                        background: #2a2e32;
+                        border-radius: 4px;
+                        border-width: 1px;
+                        border-color: #4d545c;
+                        Rectangle {
+                            x: 1px;
+                            y: 1px;
+                            width: (parent.width - 2px) * ftp-progress;
+                            height: parent.height - 2px;
+                            background: #3daee9;
+                            border-radius: 3px;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

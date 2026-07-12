@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=ULBOX360
+Comment=All-in-One Xbox 360 & Original GUI Utility
+Exec=ulbox360
+Icon=ulbox360
+Categories=Utility;FileTools;System;
+Terminal=false
