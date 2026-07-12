@@ -3,6 +3,7 @@ An All-in-One GUI utility for modded Xbox 360 and Xbox Original game backup mana
 Built entirely in **Rust** using the **Slint** GUI framework and linked with system **Qt6** widgets for native Breeze KDE styling and Wayland performance.
 
 ---
+![AI-Generated](https://img.shields.io/badge/Code-AI--Assisted%20%3E50%25-blue?style=flat-square)
 
 ## Features
 
