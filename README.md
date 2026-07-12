@@ -1,11 +1,12 @@
 # ULBOX360
 An All-in-One GUI utility for modded Xbox 360 and Xbox Original game backup management on Linux
 Built entirely in **Rust** using the **Slint** GUI framework and linked with system **Qt6** widgets for native Breeze KDE styling and Wayland performance.
-
 ---
 ![AI-Generated](https://img.shields.io/badge/Code-AI--Assisted%20%3E50%25-blue?style=flat-square)
 
 ## Features
+
+_Since I am not an experienced developer, code reviews, refactoring, and bug fixes from the community are highly encouraged and appreciated!_
 
 ### 1. ISO to GOD (Games on Demand)
 * Converts raw Xbox 360 ISO backups into Games on Demand (`GOD`) containers directly recognizable by modded consoles.
