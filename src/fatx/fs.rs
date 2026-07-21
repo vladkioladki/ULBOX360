@@ -1,6 +1,7 @@
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 use std::sync::{Arc, Mutex, Weak};
+use std::os::unix::io::AsRawFd;
 
 use crate::fatx::dir::{DirectoryEntry, DirectoryEntryIntoIterator};
 use crate::fatx::error::Error;
@@ -8,10 +9,11 @@ use crate::fatx::fat::{ClusterId, Fat};
 use crate::fatx::file::File;
 use crate::fatx::partition::{DEFAULT_PARTITION_LAYOUT, PartitionMapEntry};
 
-use zerocopy::byteorder::little_endian::{U16, U32};
+use zerocopy::byteorder::{big_endian::{U16, U32}, little_endian};
 use zerocopy::*;
 
-const FATX_SIGNATURE: u32 = 0x58544146; // 'FATX'
+const FATX_SIGNATURE: u32 = 0x58544146; // XTAF
+const XTAF_SIGNATURE: u32 = 0x46415458; // FATX
 const FATX_FAT_OFFSET_BYTES: u64 = 4096;
 const FATX_FAT_RESERVED_ENTRIES_COUNT: u32 = 1;
 
@@ -71,6 +73,10 @@ impl FatxFsConfig {
 
 impl FatxFs {
     pub fn open_device(config: &FatxFsConfig) -> Result<FatxFsHandle, Error> {
+		println!("DEBUG device_path = {:?}", config.device_path);
+        println!("DEBUG partition_offset = {:#X}", config.partition_offset_bytes);
+        println!("DEBUG partition_size = {:#X}", config.partition_size_bytes);
+        println!("DEBUG sector_size = {}", config.num_bytes_per_sector);
         // Partition offset and size validation
         if config.partition_offset_bytes % config.num_bytes_per_sector != 0 {
             return Err(Error::InvalidPartitionOffset);
@@ -83,7 +89,32 @@ impl FatxFs {
         let mut device_handle = std::fs::File::open(&config.device_path)?;
         
         // Auto-detect size if config partition size is set to the default large 2TB limit but file is smaller
-        let file_len = device_handle.metadata()?.len();
+        let real_path = std::fs::canonicalize(&config.device_path)
+            .unwrap_or_else(|_| std::path::PathBuf::from(&config.device_path));
+
+        println!("DEBUG real_path = {:?}", real_path);
+
+        let file_len = if real_path.starts_with(std::path::Path::new("/dev/")) {
+            unsafe {
+                let mut size: u64 = 0;
+                let ret = libc::ioctl(
+                    device_handle.as_raw_fd(),
+                    0x80081272, // BLKGETSIZE64
+                    &mut size
+                );
+
+                if ret != 0 {
+                    return Err(Error::InvalidPartitionOffset);
+                }
+
+                size
+            }
+        } else {
+            device_handle.metadata()?.len()
+        };
+
+        println!("DEBUG real device size = {:#X} ({} bytes)", file_len, file_len);
+        println!("DEBUG file_len = {:#X} ({} bytes)", file_len, file_len);
         let mut actual_partition_size = config.partition_size_bytes;
         if config.partition_offset_bytes + actual_partition_size > file_len {
             if file_len > config.partition_offset_bytes {
@@ -97,9 +128,17 @@ impl FatxFs {
 
         // Read superblock
         let superblock = crate::fatx::read_struct::<_, Superblock>(&mut device_handle)?;
-        if superblock.signature.get() != FATX_SIGNATURE {
+        println!("signature = {:08X}", superblock.signature.get());
+        println!("root_cluster = {}", superblock.root_cluster.get());
+        println!("sectors_per_cluster = {}", superblock.num_sectors_per_cluster.get());
+        println!("partition_offset = {:#X}", config.partition_offset_bytes);
+        let signature = superblock.signature.get();
+
+        println!("signature = {:08X}", signature);
+
+        if signature != FATX_SIGNATURE && signature != XTAF_SIGNATURE {
             return Err(Error::InvalidFilesystemSignature);
-        }
+}
 
         // Cluster geometry
         let num_sectors_per_cluster: u64 = superblock.num_sectors_per_cluster.get().into();
@@ -114,6 +153,7 @@ impl FatxFs {
         // Calculate FAT size
         let fat_offset_bytes = config.partition_offset_bytes + FATX_FAT_OFFSET_BYTES;
         let num_fat_entries = (actual_partition_size / num_bytes_per_cluster) as u32;
+        println!("num_fat_entries = {}", num_fat_entries);
         if root_cluster >= num_fat_entries {
             log::error!("Root cluster of {} exceeds cluster limit", root_cluster);
             return Err(Error::InvalidRootCluster);
@@ -122,6 +162,8 @@ impl FatxFs {
         // FIXME: Make FAT management smarter
         let mut fat = Fat::new(num_fat_entries);
         device_handle.seek(SeekFrom::Start(fat_offset_bytes))?;
+        println!("fat_offset = {:#X}", fat_offset_bytes);
+        println!("fat_size = {}", fat.fat_size_bytes);
         device_handle.read_exact(&mut fat.fat_data)?;
 
         // Cluster geometry cont'd
